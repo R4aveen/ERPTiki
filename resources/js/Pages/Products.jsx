@@ -3,7 +3,6 @@ import { Head } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 
-// Importar componentes de formularios
 import NotebookForm from '@/Components/formulariosRevision/NotebookForm';
 import DesktopForm from '@/Components/formulariosRevision/DesktopForm';
 import CommonFields from '@/Components/formulariosRevision/CommonFields';
@@ -12,7 +11,6 @@ import AIOForm from '@/Components/formulariosRevision/AIOForm';
 import MonitorForm from '@/Components/formulariosRevision/MonitorForm';
 
 export default function Products() {
-    // Estado para el tipo de equipo seleccionado
     const [equipmentType, setEquipmentType] = useState('notebook');
     
     const [showNewProviderForm, setShowNewProviderForm] = useState(false);
@@ -21,7 +19,6 @@ export default function Products() {
     const [showClientInput, setShowClientInput] = useState(false);
     const [newClientName, setNewClientName] = useState('');
     
-    // Estado para las secciones visibles del formulario
     const [visibleSections, setVisibleSections] = useState({
         dates: true,
         clientProvider: true,
@@ -34,7 +31,6 @@ export default function Products() {
         observations: true
     });
     
-    // Estado inicial del formulario (solo campos comunes y básicos)
     const [formData, setFormData] = useState({
         fechaRecepcion: '',
         fechaRevision: '',
@@ -43,12 +39,10 @@ export default function Products() {
         proveedor: '',
         tipoEquipo: 'notebook',
         observaciones: '',
-        // Los campos específicos se manejarán en cada componente
     });
     
     const [tableData, setTableData] = useState([]);
 
-    // Función para alternar la visibilidad de las secciones
     const toggleSection = (section) => {
         setVisibleSections({
             ...visibleSections,
@@ -81,14 +75,12 @@ export default function Products() {
         }
     };
 
-    // Confirm new client
     const confirmNewClient = () => {
         setClientName(newClientName);
         setFormData({...formData, cliente: newClientName});
         setShowClientInput(false);
     };
 
-    // Handle form input changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData({
@@ -97,7 +89,6 @@ export default function Products() {
         });
     };
 
-    // Manejar cambio de tipo de equipo
     const handleEquipmentTypeChange = (type) => {
         setEquipmentType(type);
         setFormData({
@@ -106,11 +97,9 @@ export default function Products() {
         });
     };
 
-    // Handle form submission
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // Asignar el número correcto al equipo antes de agregarlo a la tabla
         const newEquipment = {
             ...formData,
             numero: (tableData.length + 1).toString()
@@ -118,30 +107,22 @@ export default function Products() {
         
         setTableData([...tableData, newEquipment]);
         
-        // Reset form or keep some values as needed
         setFormData({
             ...formData,
             numero: '',
-            // Mantener cliente, fechas y tipo de equipo
-            // Resetear campos específicos según el tipo de equipo
             observaciones: '',
         });
     };
 
-    // Export to Excel
     const exportToExcel = () => {
-        // Group data by equipment type
         const notebookData = tableData.filter(item => item.tipoEquipo === 'notebook');
         const desktopData = tableData.filter(item => item.tipoEquipo === 'desktop');
         const aioData = tableData.filter(item => item.tipoEquipo === 'aio');
         const monitorData = tableData.filter(item => item.tipoEquipo === 'monitor');
         
-        // Create workbook
         const workbook = XLSX.utils.book_new();
         
-        // Function to create formatted sheet with section headers in the same row
         const createFormattedSheet = (data, sheetName, formComponent) => {
-            // Get sections configuration from the form component
             const sections = formComponent.excelSections || [];
             
             if (sections.length === 0) {
@@ -149,45 +130,35 @@ export default function Products() {
                 return;
             }
             
-            // Create worksheet
             const ws = XLSX.utils.aoa_to_sheet([]);
             
-            // Create header row with section titles
             const headerRow = [];
             const columnHeaders = [];
             ws['!merges'] = ws['!merges'] || [];
             
             let currentCol = 0;
             sections.forEach(section => {
-                // Add section title to header row
                 headerRow.push(section.title);
                 
-                // Add empty cells for the rest of the section width
                 for (let i = 1; i < section.columns.length; i++) {
                     headerRow.push("");
                 }
                 
-                // Create merge for section title
                 ws['!merges'].push({ 
                     s: { r: 0, c: currentCol }, 
                     e: { r: 0, c: currentCol + section.columns.length - 1 } 
                 });
                 
-                // Add column headers
                 section.columns.forEach(col => {
                     columnHeaders.push(col);
                 });
                 
                 currentCol += section.columns.length;
             });
-            
-            // Add headers to worksheet
             XLSX.utils.sheet_add_aoa(ws, [headerRow], { origin: 'A1' });
             XLSX.utils.sheet_add_aoa(ws, [columnHeaders], { origin: 'A2' });
             
-            // Add data if available
             if (data.length > 0) {
-                // Prepare data rows
                 const dataRows = [];
                 
                 data.forEach(item => {
@@ -195,27 +166,21 @@ export default function Products() {
                     
                     sections.forEach(section => {
                         section.columns.forEach(col => {
-                            // Get the field mapping for this column
                             const fieldName = section.fieldMapping[col];
                             
-                            // Try to get the value, with fallbacks
                             let value = '';
                             
-                            // Check if the property exists directly
                             if (item[fieldName] !== undefined) {
                                 value = item[fieldName];
                             } 
-                            // For boolean values, convert to "Sí"/"No"
                             else if (typeof item[fieldName] === 'boolean') {
                                 value = item[fieldName] ? 'Sí' : 'No';
                             }
-                            // Use default values from the form component if available
                             else if (formComponent.defaultValues && 
                                     formComponent.defaultValues[fieldName] !== undefined) {
                                 value = formComponent.defaultValues[fieldName];
                             }
                             
-                            // Add the value to the row
                             row.push(value);
                         });
                     });
@@ -223,15 +188,12 @@ export default function Products() {
                     dataRows.push(row);
                 });
                 
-                // Add data to worksheet
                 XLSX.utils.sheet_add_aoa(ws, dataRows, { origin: 'A3' });
             }
             
-            // Add worksheet to workbook
             XLSX.utils.book_append_sheet(workbook, ws, sheetName);
         };
         
-        // Create sheets for each equipment type using their respective form components
         if (notebookData.length > 0) {
             createFormattedSheet(notebookData, "Notebooks", NotebookForm);
         }
@@ -248,7 +210,6 @@ export default function Products() {
             createFormattedSheet(monitorData, "Monitores", MonitorForm);
         }
         
-        // Add a summary sheet with all equipment
         const allSections = [
             {
                 title: "Todos los Equipos",
@@ -266,24 +227,19 @@ export default function Products() {
             }
         ];
         
-        // Create a temporary component for all equipment
         const AllEquipmentForm = {
             excelSections: allSections,
             defaultValues: {
-                // Default values for summary sheet
             }
         };
         
         createFormattedSheet(tableData, "Todos los Equipos", AllEquipmentForm);
         
-        // Use the specified filename
         const filename = "REVISION ECOPC 2025.xlsx";
         
-        // Write file
         XLSX.writeFile(workbook, filename);
     };
 
-    // Definir los tipos de equipos disponibles
     const equipmentTypes = [
         { id: 'notebook', label: 'Notebook' },
         { id: 'desktop', label: 'Desktop' },
