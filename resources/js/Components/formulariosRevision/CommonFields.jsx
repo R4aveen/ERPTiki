@@ -15,7 +15,9 @@ export default function CommonFields({
     providerName,
     setProviderName,
     handleProviderChange,
-    confirmNewProvider
+    confirmNewProvider,
+    providers,
+    clients = []
 }) {
     return (
         <>
@@ -73,9 +75,11 @@ export default function CommonFields({
                                     value={clientName}
                                     onChange={handleClientChange}
                                 >
-                                    <option value="H. DE ANTOFAGASTA">H. DE ANTOFAGASTA</option>
-                                    <option value="Hospital Regional">Hospital Regional</option>
-                                    <option value="Clínica Antofagasta">Clínica Antofagasta</option>
+                                    {clients?.map(client => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.nombre}
+                                        </option>
+                                    ))}
                                     <option value="new">Agregar nuevo cliente...</option>
                                 </select>
                             ) : (
@@ -102,12 +106,15 @@ export default function CommonFields({
                             {!showNewProviderForm ? (
                                 <select 
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    value={formData.proveedor}
+                                    value={formData.provider_id}
                                     onChange={handleProviderChange}
                                 >
                                     <option value="">Seleccionar proveedor</option>
-                                    <option value="Proveedor 1">Proveedor 1</option>
-                                    <option value="Proveedor 2">Proveedor 2</option>
+                                    {providers?.map(provider => (
+                                        <option key={provider.id} value={provider.id}>
+                                            {provider.nombre}
+                                        </option>
+                                    ))}
                                     <option value="new">Agregar nuevo proveedor...</option>
                                 </select>
                             ) : (

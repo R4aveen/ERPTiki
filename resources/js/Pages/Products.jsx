@@ -18,6 +18,22 @@ export default function Products() {
     const [clientName, setClientName] = useState('H. DE ANTOFAGASTA');
     const [showClientInput, setShowClientInput] = useState(false);
     const [newClientName, setNewClientName] = useState('');
+    const [providers, setProviders] = useState([]);
+    const [clients, setClients] = useState([]);
+    
+    useEffect(() => {
+        // Fetch providers from the backend
+        fetch('/api/providers')
+            .then(response => response.json())
+            .then(data => setProviders(data))
+            .catch(error => console.error('Error fetching providers:', error));
+
+        // Fetch clients from the backend
+        fetch('/api/clients')
+            .then(response => response.json())
+            .then(data => setClients(data))
+            .catch(error => console.error('Error fetching clients:', error));
+    }, []);
     
     const [visibleSections, setVisibleSections] = useState({
         dates: true,
@@ -35,9 +51,13 @@ export default function Products() {
         fechaRecepcion: '',
         fechaRevision: '',
         numero: '',
-        cliente: 'H. DE ANTOFAGASTA',
-        proveedor: '',
+        cliente_id: '',
+        provider_id: '',
         tipoEquipo: 'notebook',
+        marca: '',
+        modelo: '',
+        serialNumber: '',
+        estado: 'bueno',
         observaciones: '',
     });
     
@@ -69,8 +89,9 @@ export default function Products() {
         if (e.target.value === 'new') {
             setShowClientInput(true);
         } else {
-            setClientName(e.target.value);
-            setFormData({...formData, cliente: e.target.value});
+            const selectedClient = clients.find(client => client.id === parseInt(e.target.value));
+            setClientName(selectedClient.nombre);
+            setFormData({...formData, cliente_id: selectedClient.id});
             setShowClientInput(false);
         }
     };
@@ -97,21 +118,42 @@ export default function Products() {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
-        const newEquipment = {
-            ...formData,
-            numero: (tableData.length + 1).toString()
-        };
-        
-        setTableData([...tableData, newEquipment]);
-        
-        setFormData({
-            ...formData,
-            numero: '',
-            observaciones: '',
-        });
+        try {
+            const response = await fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(formData)
+            });
+    
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+    
+            const newProduct = await response.json();
+            
+            setTableData([...tableData, {
+                ...formData,
+                numero: (tableData.length + 1).toString(),
+                id: newProduct.id
+            }]);
+            
+            setFormData({
+                ...formData,
+                marca: '',
+                modelo: '',
+                serialNumber: '',
+                observaciones: '',
+            });
+        } catch (error) {
+            console.error('Error saving product:', error);
+            alert('Error al guardar el producto');
+        }
     };
 
     const exportToExcel = () => {
@@ -277,7 +319,6 @@ export default function Products() {
                     visibleSections={visibleSections} 
                     toggleSection={toggleSection} 
                 />;
-            // Aquí puedes agregar más casos para otros tipos de equipos
             default:
                 return <p>Seleccione un tipo de equipo válido</p>;
         }
@@ -310,7 +351,6 @@ export default function Products() {
                                 </button>
                             </div>
 
-                            {/* Tabs para seleccionar tipo de equipo */}
                             <div className="mb-6 border-b border-gray-200">
                                 <ul className="flex flex-wrap -mb-px">
                                     {equipmentTypes.map((type) => (
@@ -331,7 +371,6 @@ export default function Products() {
                             </div>
 
                             <form onSubmit={handleSubmit}>
-                                {/* Campos comunes (fechas, cliente, proveedor) */}
                                 <CommonFields 
                                     formData={formData}
                                     handleInputChange={handleInputChange}
@@ -348,12 +387,13 @@ export default function Products() {
                                     setProviderName={setProviderName}
                                     handleProviderChange={handleProviderChange}
                                     confirmNewProvider={confirmNewProvider}
+                                    providers={providers}
+                                    clients={clients}
+
                                 />
 
-                                {/* Renderizar formulario específico según el tipo de equipo */}
                                 {renderEquipmentForm()}
 
-                                {/* Campo de observaciones (común a todos) */}
                                 <ObservationsField 
                                     formData={formData}
                                     handleInputChange={handleInputChange}
@@ -371,7 +411,6 @@ export default function Products() {
                                 </div>
                             </form>
 
-                            {/* Tabla de equipos registrados */}
                             {tableData.length > 0 && (
                                 <div className="mt-8">
                                     <div className="flex justify-between items-center mb-4">
@@ -407,7 +446,6 @@ export default function Products() {
                                                             <button
                                                                 onClick={() => {
                                                                     const newTableData = tableData.filter((_, i) => i !== index);
-                                                                    // Reassign numbers after deletion
                                                                     const updatedTableData = newTableData.map((item, idx) => ({
                                                                         ...item,
                                                                         numero: (idx + 1).toString()
