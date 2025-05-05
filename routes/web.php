@@ -40,6 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/providers', [ProviderController::class, 'store'])->name('providers.store');
     Route::put('/providers/{provider}', [ProviderController::class, 'update'])->name('providers.update');
     Route::delete('/providers/{provider}', [ProviderController::class, 'destroy'])->name('providers.destroy');
+
+    // API routes for clients and providers
+    Route::get('/api/clients', [ClientController::class, 'apiIndex']);
+    Route::get('/api/providers', [ProviderController::class, 'apiIndex']);
 });
 
 Route::middleware('auth')->group(function () {

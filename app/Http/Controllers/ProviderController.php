@@ -16,6 +16,12 @@ class ProviderController extends Controller
         ]);
     }
 
+    public function apiIndex()
+    {
+        $providers = Provider::all();
+        return response()->json($providers);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
